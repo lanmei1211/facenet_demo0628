@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>人脸识别系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <script src="http://code.jquery.com/jquery-1.8.0.min.js"></script> -->
+    <!-- <script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script> -->
+    <!-- <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile.structure-1.4.5.min.css"> -->
+    <!-- <script src="https://cdn.bootcdn.net/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
+    <script src="https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/dist/face-api.min.js"></script> -->
+    <script src="{{ static_url('jm/jquery-1.8.0.min.js') }}"></script>
+    <script src="{{ static_url('jm/jquery.mobile-1.4.5.min.js') }}"></script>
+    <link rel="stylesheet" href="{{ static_url('jm/jquery.mobile-1.4.5.min.css') }}">
+
+    <script src="{{ static_url('build/tracking-min.js') }}"></script>
+    <script src="{{ static_url('build/data/face-min.js') }}"></script>
+    <style>
+      html,body{margin:0;padding:0;width:100%;height:100%;}
+      .videoView {
+          width:calc(100% - 357px);
+          height:100%;
+          position: absolute;
+          top: 0;
+          left: 0;
+      }
+      .faceView {
+        margin-left: -160px;
+        margin-top: 260px;
+        position: absolute;
+      }
+      .tips{padding:52px;box-sizing: border-box;width:357px;float:right;height:100%;font-family:"Microsoft YaHei";}
+      .result-success .head{background-image: url(./head-success.png);}
+      .result-success .result{color:#09cd65;}
+      .result-fail .head{background-image: url(./head-fail.png);}
+      .result-fail .result{color:#cd0917;}
+      .head{width:252px;height:220px;background-image: url(./head-bg.png);margin-top:10px;box-sizing: border-box;padding-top: 10px;}
+      .head-bg{border-radius:50%;width:200px;height: 200px;overflow: hidden;margin:0 auto;}
+      .result{font-size:50px;text-align: center;}
+      .result-info{font-size:24px;margin-top:60px;}
+      .result-info div{margin:15px 0;color:#222222;}
+    </style>
+</head>
+<body>
+    <video class="videoView" id="video" width="100%" height="100%" preload autoplay loop muted></video>
+    <canvas class="videoView" id="canvas" width="100%" height="100%">浏览器不支持</canvas>
+    <canvas class="faceView" id="faceView" width="100%" height="100%">浏览器不支持</canvas>
+    <!-- 识别成功class result-success,识别失败class result-fail -->
+    <div id="tips" class="tips result-success">
+        <div class="head">
+            <div class="head-bg"></div>
+        </div>
+        <h1 class="result">识别成功！</h1>
+        <div class="result-info">
+            <div>姓名：</div>
+            <div>工号：</div>
+            <div>性别：</div>
+            <div>部门：</div>
+        </div>
+    </div>
+    <div id="bdtts_div_id">
+        <audio id="tts_autio_id" autoplay="autoplay">
+            <source id="tts_source_id"
+                    src="http://tts.baidu.com/text2audio?lan=zh&amp;ie=UTF-8&amp;spd=5&amp;per=1&amp;text=hello"
+                    type="audio/mpeg">
+            <embed id="tts_embed_id" height="0" width="0" src="">
+        </audio>
+    </div>
+<div data-role="footer" data-position="fixed">
+</div>
+</body>
+</html>
+<script>
+    window.onload = function() {
+      var video = document.getElementById('video');
+
+
+      var canvas = document.getElementById('canvas');
+      var context = canvas.getContext('2d');
+
+      var tracker = new tracking.ObjectTracker('face');
+      tracker.setInitialScale(4);
+      tracker.setStepSize(2);
+      tracker.setEdgesDensity(0.1);
+
+      tracking.track('#video', tracker, { camera: true });
+
+      tracker.on('track', function(event) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        event.data.forEach(function(rect) {
+        
+          context.strokeStyle = '#a64ceb';
+          context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+          context.font = '11px Helvetica';
+          context.fillStyle = "#fff";
+          //context.fillText('x: ' + rect.x + 'px,'+rect.width, rect.x + rect.width + 5, rect.y + 11);
+          //context.fillText('y: ' + rect.y + 'px,'+rect.height, rect.x + rect.width + 5, rect.y + 22);
+
+          //人脸识别
+          if(dopredict){
+              //截图,在faceView绘制
+              var faceView = document.getElementById('faceView');
+              faceView.getContext('2d').drawImage(video, rect.x*2, rect.y*2,rect.width*2,rect.height*2,0,0,faceView.width,faceView.height);
+              //可以理解为压缩程度
+              var quality = 0.9;
+              var snapData = faceView.toDataURL('image/jpeg',quality);
+              //提交识别
+              predict(snapData);
+              context.strokeStyle = '#a64ceb';
+              context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+              context.font = '22px Helvetica';
+              context.fillStyle = '#a64ceb';
+              context.fillText(re+"，欢迎你！", rect.x + 5, rect.y - 20);
+          }
+        });
+      });
+      //打开摄像头
+      var gui = new dat.GUI();
+      gui.add(tracker, 'edgesDensity', 0.1, 0.5).step(0.01);
+      gui.add(tracker, 'initialScale', 1.0, 10.0).step(0.1);
+      gui.add(tracker, 'stepSize', 1, 5).step(0.1);
+    };
+
+//返回识别结果
+var re='';
+var dopredict = true;
+function predict(snapData){
+<!--   dopredict = false;-->
+<!--   $('#tips').text("正在识别，请稍候...");-->
+   $.ajax({url : 'predict',data : {"snapData" : snapData},type : 'post',dataType : 'json',
+        success : function(rs) {
+            if(rs.success){                
+<!--                $('#tips').text(JSON.stringify(rs));-->
+                if(rs.class.prob==0){
+                    dopredict = true;
+                }else{
+                    //doTTS(rs.class+"，欢迎你！")
+                    re=rs.class
+                }
+            }else{
+                dopredict = true;
+            }
+        },
+        error:function() {
+            $('#tips').text(JSON.stringify(rs));
+        }
+    });
+}
+
+//文字转语音
+function doTTS(ttsText) {
+      var ttsDiv = document.getElementById('bdtts_div_id');
+      var ttsAudio = document.getElementById('tts_autio_id');
+      ttsText = encodeURI(ttsText);
+      ttsDiv.removeChild(ttsAudio);
+      ttsDiv.innerHTML = '<audio id="tts_autio_id" autoplay="autoplay">'
+      +'<source id="tts_source_id" src="http://tts.baidu.com/text2audio?lan=zh&ie=UTF-8&per=3&spd=5&text=' + ttsText + '" type="audio/mpeg">'
+      +'<embed id="tts_embed_id" height="0" width="0" src="">'
+      +'</audio>';
+
+      ttsAudio = document.getElementById('tts_autio_id');
+      ttsAudio.play();
+}
+
+</script>

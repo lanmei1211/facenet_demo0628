@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+    
+	<title>AiDong.ai</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="{{ static_url('jm/jquery-1.8.0.min.js') }}"></script>
+	<script src="{{ static_url('jm/jquery.mobile-1.4.5.min.js') }}"></script>
+	<link rel="stylesheet" href="{{ static_url('jm/jquery.mobile-1.4.5.min.css') }}">
+    </head>
+ <body>S
+    
+<center>
+    <img src="{{ static_url('ad.png') }}">
+    <h1>爱动人脸识别API</h1>
+	<p>开始时间：{{startDate}}</p>
+	<p>完成时间：{{endDate}}</p>
+    <form action='classifier' enctype="multipart/form-data" method='post'>
+        <input type='file' name='testfile' id='testfile'/>
+        <input type='button' id='button1' value='提交测试' onclick="classifier()"/>
+    </form> 
+    <div id="tips"></div>    
+ 
+</center> 
+<div data-role="footer" data-position="fixed">
+   <h2> powered by : <a href="https://www.aidong-ai.com" target=_blank style="text-decoration:none;">爱动超越人工智能</a></h2>
+</div>  
+</body>
+</html>
+<script>
+function classifier(){
+   if($('input[type=file]')[0].files.length>0){
+       var form = $('form')[0];
+       $('#button1').attr("disabled",true);
+       $('#tips').text("正在识别，请稍候...");
+       $.ajax({
+           url: '/classifier.do',
+           data: new FormData(form),
+           type: 'POST',
+           dataType:'json',
+           contentType: false,
+           processData: false,
+           success: function(rs){
+               $('#tips').text(JSON.stringify(rs));
+               $('#button1').removeAttr("disabled");
+           },
+           error: function(rs){
+               $('#tips').text(JSON.stringify(rs));
+               $('#button1').removeAttr("disabled");
+           }
+       })
+   }else{
+       alert("请选择图片文件")
+   }
+}
+</script>

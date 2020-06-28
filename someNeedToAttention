@@ -1,0 +1,11 @@
+1、建议先安装tensorflow==1.7
+pip install tensorflow==1.7
+pip install scipy==1.2.1
+pip install numpy==1.16.2
+
+
+2、mtcnn的图片裁剪速度好像是与图片大小有关，表现为图片越大，mtcnn所需的裁剪时间越长。
+另外需要注意图片不能太大,因为图片太大不仅是裁剪时间变长，还可能发生不能裁剪现象。
+
+3、遇到此问题{"success": false, "msg": "could not broadcast input array from shape (528,512) into shape (1,512)"}，
+需要重新打开即可。
